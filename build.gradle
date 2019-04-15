@@ -275,6 +275,7 @@ dependencies {
 }
 
 jar {
+	baseName = 'java-stix'  // KLS
 	manifest {
 		attributes 'Specification-Title': 'Structured Threat Information eXpression (STIX)',
 		'Specification-Version': version,
