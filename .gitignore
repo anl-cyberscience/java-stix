@@ -8,3 +8,4 @@ src/main/resources/namespace-prefix.xjb
 src/main/resource/schemas
 .gradle
 buildSrc/.gradle
+/bin/
