@@ -43,7 +43,9 @@ class GenerateJAXBTask extends DefaultTask {
 			schema(dir: schemaDir, includes: "*.xsd")
 			schema(dir: schemaDir, includes: "extensions/**/*.xsd")
 			schema(dir: schemaDir, includes: "external/**/*.xsd")
-			
+			// added AIS marking extensions. KLS
+			schema(dir: schemaDir, includes: "marking_extensions/*.xsd")
+
 			//Doing it this way, xjc cannot find its way to all the imported schemas ...
 			//schema(dir: schemaDir, includes: "**/*.xsd")
 		}
