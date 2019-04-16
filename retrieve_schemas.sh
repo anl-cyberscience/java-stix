@@ -1,10 +1,10 @@
 #!/bin/sh
 
-echo "    Retrieving STIX schemas..."
+echo "    Retrieving STIX schemas for v${1}..."
 git submodule init
 git submodule update --force
-cd src/main/resources/schemas/v1.2.0
-git checkout tags/v1.2.0
+cd src/main/resources/schemas/v${1}
+git checkout tags/v${1}
 
 echo "    Retrieving CybOX schemas..."
 git submodule init

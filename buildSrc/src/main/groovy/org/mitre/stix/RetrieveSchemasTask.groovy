@@ -17,6 +17,10 @@ import org.mitre.stix.Checksum
 
 import org.apache.tools.ant.taskdefs.condition.Os
 
+import groovy.xml.XmlUtil
+import groovy.xml.StreamingMarkupBuilder
+import groovy.util.slurpersupport.GPathResult
+
 /**
  * Gradle Task used to attempt to automatically retrieve the schemas
  * 
@@ -44,14 +48,14 @@ class RetrieveSchemasTask extends DefaultTask {
 		}
 	}
 	
-	def pull() {
+	def pull(file) {
 	
 		def command = null
 
 		if (Os.isFamily(Os.FAMILY_WINDOWS)) {
-			command = "cmd /c .\retrieve_schemas.bat"
+			command = "cmd /c .\${file}.bat"
 		} else {
-			command = "sh ./retrieve_schemas.sh"
+			command = "sh ./${file}.sh $schemaVersion"
 		}
 
 		def proc = command.execute(null, project.rootDir)
@@ -59,14 +63,47 @@ class RetrieveSchemasTask extends DefaultTask {
 
 		println("${proc.in.text}")
 	}
+	
+	def processFileInplace(file, Closure processText) {
+		def text = file.text
+		file.write(processText(text))
+	}
+
+	
+	def String serializeXml(GPathResult xml){
+		// how annoying.  the default serializer just ignores root level namespaces! KLS
+		XmlUtil.serialize(new StreamingMarkupBuilder().bind {
+			mkp.yield xml
+		  } )
+	}
 
 	@TaskAction
 	def retrieve() {
 		
 		if (project.fileTree("src/main/resources/schemas/v${schemaVersion}").isEmpty() || project.fileTree("src/main/resources/schemas/v${schemaVersion}/cybox").isEmpty()) {
-			pull()
+			pull("retrieve_schemas")
 		} else {
 			println("    Schemas are present. Retrieval is not needed.")
+		}
+		
+		// retreive marking files if directory not present
+		def markingDir = new File(project.projectDir,"src/main/resources/schemas/v${schemaVersion}/marking_extensions")
+		if (!markingDir.exists()) {
+			// this worked perfectly, however, the namespaces are wrong for creating JAXB classes.
+			//  need to add the file substitutions after the pull call
+			pull("retrieveMarkingSchemas")
+			
+			def ais = new File(markingDir,'AIS_Bundle_Marking_1.1.1_v1.0.xsd')
+			processFileInplace(ais) { text ->
+				def schemafile = new XmlSlurper(false,false).parseText(text)
+				//schemafile.declareNamespace(xs: 'http://www.w3.org/2001/XMLSchema',
+				//			AISMarking: 'http://www.us-cert.gov/STIXMarkingStructure#AISConsentMarking-2',
+				//			marking: 'http://data-marking.mitre.org/Marking-1',
+				//			stixCommon:'http://stix.mitre.org/common-1')
+				schemafile.'xs:import'[0].@schemaLocation = '../data_marking.xsd'
+				schemafile.'xs:import'[1].@schemaLocation = '../stix_common.xsd'
+				serializeXml(schemafile)
+		   }
 		}
 		
 		patch()
